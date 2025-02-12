@@ -10,9 +10,8 @@ typedef struct
 {
     int id;
     char title[50];
-    char addingDate[10];
-    char deadline[10];
-    char status[10];
+    char deadline[11];
+    int status;
 } Task;
 
 // Prototypes
@@ -23,21 +22,33 @@ void showTodaysTasks();
 void deleteTask();
 int menu();
 int generateTaskId();
+const char *getStatus();
 
 int main()
 {
 
-    int input = menu(0);
+    int input = 0;
     // printf("Input from Main Function: %d\n", input);
-    switch (input)
+    do
     {
-    case 1:
-        addTask();
-        break;
+        input = menu(0);
+        switch (input)
+        {
+        case 0:
+            printf("Exiting The Program.");
+            exit(0);
+        case 1:
+            addTask();
+            break;
+        case 2:
+            showAllTasks();
+            break;
 
-    default:
-        break;
-    }
+        default:
+            printf("Invalid Input");
+            break;
+        }
+    } while (input > 0);
 
     return 0;
 }
@@ -51,14 +62,13 @@ int menu(int current)
         printf("1. Add Task.\n");
         printf("2. Show All Tasks.\n");
         printf("3. Show Todays Tasks.(Under Construction)\n");
-        printf("4. Exit\n");
+        printf("0. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
         if (choice == 4)
         {
             printf("Exiting program.\n");
-            exit(0);
         }
         else if (choice > 4)
         {
@@ -77,14 +87,27 @@ int generateTaskId()
     if (file == NULL)
         return 1;
 
-    printf("dd");
     Task tsk;
-    while (fscanf(file, "%d %s %s %s %s", &tsk.id, &tsk.title, &tsk.addingDate, &tsk.deadline, &tsk.status) != EOF)
+    while (fscanf(file, "%d %d %s %s", &tsk.id, &tsk.status, &tsk.title, &tsk.deadline) != EOF)
     {
     }
     fclose(file);
-    printf("ddd");
     return tsk.id + 1;
+}
+
+const char *getStatus(int status)
+{
+    switch (status)
+    {
+    case 0:
+        return "Pending";
+    case 1:
+        return "In-Progress";
+    case 2:
+        return "Done";
+    default:
+        return "Invalid Status";
+    }
 }
 
 void addTask()
@@ -103,7 +126,28 @@ void addTask()
         printf("Error opening file!\n");
         return;
     }
-    fprintf(file, "%d %s %s %s %s\n", id, task.title, "12-02-2025", "14-02-2025", "Pending");
+    fprintf(file, "%d %d %s %s\n", id, 0, task.deadline, task.title);
     fclose(file);
     printf("Task added successfully!\n");
+}
+
+void showAllTasks()
+{
+    // printf("hsldfh");
+    FILE *file = fopen(FILENAME_TASKS, "r");
+    if (file == NULL)
+    {
+        printf("No Task found!\n");
+        return;
+    }
+
+    Task tsk;
+    printf("\n%-5s %-12s %-12s %-10s\n", "ID", "Task Title", "Status", "Deadline");
+    printf("%-5s %-12s %-12s %-10s \n", "--", "----------", "------", "------");
+
+    while (fscanf(file, "%d %d %10s %s", &tsk.id, &tsk.status, &tsk.deadline, &tsk.title) != EOF)
+
+        printf("%-5d %-12s %-12s %-5s\n", tsk.id, tsk.title, getStatus(tsk.status), tsk.deadline);
+
+    fclose(file);
 }
