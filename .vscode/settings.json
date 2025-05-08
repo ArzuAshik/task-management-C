@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "typeinfo": "c",
+    "ctype.h": "c",
+    "string.h": "c"
+  }
+}

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #define MAX_TASKS 100
 #define FILENAME_TASKS "tasks.txt"
@@ -22,6 +23,7 @@ void showTodaysTasks();
 void deleteTask();
 int menu();
 int generateTaskId();
+void updateTask(int id);
 const char *getStatus();
 
 int main()
@@ -43,6 +45,9 @@ int main()
         case 2:
             showAllTasks();
             break;
+        case 3:
+            showTodaysTasks();
+            break;
 
         default:
             printf("Invalid Input");
@@ -61,7 +66,7 @@ int menu(int current)
         printf("\n*** Main Menu ***\n");
         printf("1. Add Task.\n");
         printf("2. Show All Tasks.\n");
-        printf("3. Show Todays Tasks.(Under Construction)\n");
+        printf("3. Show Todays Tasks.\n");
         printf("0. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
@@ -83,7 +88,7 @@ int menu(int current)
 int generateTaskId()
 {
     FILE *file = fopen(FILENAME_TASKS, "r");
-    printf("d");
+    // printf("d");
     if (file == NULL)
         return 1;
 
@@ -117,7 +122,7 @@ void addTask()
 
     printf("Enter Title: ");
     scanf("%49s", task.title);
-    printf("Enter Deadline: ");
+    printf("Enter Deadline: (YYYY-MM-DD) ");
     scanf("%49s", task.deadline);
 
     FILE *file = fopen(FILENAME_TASKS, "a");
@@ -150,4 +155,146 @@ void showAllTasks()
         printf("%-5d %-12s %-12s %-5s\n", tsk.id, tsk.title, getStatus(tsk.status), tsk.deadline);
 
     fclose(file);
+
+    int choice;
+    printf("Do you want to update a task? (1: Yes, 0: No): ");
+    scanf("%d", &choice);
+    if (choice == 1)
+    {
+        int id;
+        printf("Enter Task ID to update: ");
+        scanf("%d", &id);
+        updateTask(id);
+    }
+}
+
+void showTodaysTasks()
+{
+    FILE *file = fopen(FILENAME_TASKS, "r");
+    if (file == NULL)
+    {
+        printf("No Task found!\n");
+        return;
+    }
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char today[11];
+    sprintf(today, "%04d-%02d-%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+
+    Task tsk;
+    int found = 0;
+    printf("\nToday's Tasks (%s):\n", today);
+    printf("\n%-5s %-12s %-12s %-10s\n", "ID", "Task Title", "Status", "Deadline");
+    printf("%-5s %-12s %-12s %-10s\n", "--", "----------", "------", "---------");
+
+    while (fscanf(file, "%d %d %10s %s", &tsk.id, &tsk.status, tsk.deadline, tsk.title) != EOF)
+    {
+        if (strcmp(tsk.deadline, today) == 0)
+        {
+            printf("%-5d %-12s %-12s %-10s\n", tsk.id, tsk.title, getStatus(tsk.status), tsk.deadline);
+            found = 1;
+        }
+    }
+
+    if (!found)
+    {
+        printf("No tasks due today.\n");
+    }
+
+    fclose(file);
+
+    int choice;
+    printf("Do you want to update a task? (1: Yes, 0: No): ");
+    scanf("%d", &choice);
+    if (choice == 1)
+    {
+        int id;
+        printf("Enter Task ID to update: ");
+        scanf("%d", &id);
+        updateTask(id);
+    }
+}
+
+void updateTask(int id)
+{
+    FILE *file = fopen(FILENAME_TASKS, "r");
+    FILE *temp = fopen("temp.txt", "w");
+    if (file == NULL || temp == NULL)
+    {
+        printf("Error opening file!\n");
+        return;
+    }
+
+    Task tsk;
+    int found = 0;
+    while (fscanf(file, "%d %d %10s %s", &tsk.id, &tsk.status, tsk.deadline, tsk.title) != EOF)
+    {
+        if (tsk.id == id)
+        {
+            found = 1;
+            int choice;
+            do
+            {
+                printf("\n*** Updating Task: ID - %d ***\n", id);
+                printf("1. Update Status\n");
+                printf("2. Update Deadline\n");
+                printf("3. Update Title\n");
+                printf("4. Save and Exit\n");
+                printf("0. Cancel Update\n");
+                printf("Enter your choice: ");
+                scanf("%d", &choice);
+
+                if (choice == 1)
+                {
+                    printf("Current Status: %s\n", getStatus(tsk.status));
+                    printf("Enter new status (0: Pending, 1: In-Progress, 2: Done): ");
+                    scanf("%d", &tsk.status);
+                }
+                else if (choice == 2)
+                {
+                    printf("Current Deadline: %s\n", tsk.deadline);
+                    printf("Enter new deadline (YYYY-MM-DD): ");
+                    scanf("%s", tsk.deadline);
+                }
+                else if (choice == 3)
+                {
+                    printf("Current Title: %s\n", tsk.title);
+                    printf("Enter new Title: ");
+                    scanf("%s", tsk.title);
+                }
+                else if (choice == 4)
+                {
+                    printf("Saving updates...\n");
+                    break; // লুপ থেকে বের হবে এবং সেভ করবে
+                }
+                else if (choice == 0)
+                {
+                    printf("Update canceled.\n");
+                    fclose(file);
+                    fclose(temp);
+                    remove("temp.txt");
+                    return;
+                }
+                else
+                {
+                    printf("Invalid choice. Try again.\n");
+                }
+
+            } while (1);
+        }
+
+        fprintf(temp, "%d %d %s %s\n", tsk.id, tsk.status, tsk.deadline, tsk.title);
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    remove(FILENAME_TASKS);
+    rename("temp.txt", FILENAME_TASKS);
+
+    if (found)
+        printf("Task updated successfully!\n");
+    else
+        printf("Task with ID %d not found!\n", id);
 }
